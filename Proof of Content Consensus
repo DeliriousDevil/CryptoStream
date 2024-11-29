@@ -1,0 +1,103 @@
+import hashlib
+import random
+import time
+
+class Block:
+  def __init__(self, timestamp, previous_hash, content_hash, validator):
+    self.timestamp = timestamp
+    self.previous_hash = previous_hash
+    self.content_hash = content_hash
+    self.validator = validator
+    self.hash = self.calculate_hash()
+
+  def calculate_hash(self):
+    sha = hashlib.sha256()
+    sha.update(str(self.timestamp).encode('utf-8') + 
+               str(self.previous_hash).encode('utf-8') + 
+               str(self.content_hash).encode('utf-8') + 
+               str(self.validator).encode('utf-8'))
+    return sha.hexdigest()
+
+class ProofOfContentBlockchain:  # Defined the name here
+  def __init__(self):
+    self.chain = [self.create_genesis_block()]
+    self.validators = {}
+    self.content_ledger = {}
+    self.validator_identities = {}  # Store validator identity information
+
+  def create_genesis_block(self):
+    return Block(0, "0", "0", "Genesis Validator")
+
+  def get_latest_block(self):
+    return self.chain[-1]
+
+  def register_validator(self, validator_address, identity_proof):
+    """Registers a new validator with Sybil attack prevention."""
+    if validator_address not in self.validators:
+      # Simulate identity verification (e.g., using a decentralized identity system)
+      is_valid_identity = self.verify_identity(identity_proof)  
+      if is_valid_identity:
+        self.validators[validator_address] = {
+            "score": 10,
+            "last_contribution": time.time()
+        }
+        self.validator_identities[validator_address] = identity_proof
+      else:
+        print(f"Validator registration failed for {validator_address}: Invalid identity.")
+
+  def verify_identity(self, identity_proof):
+    """
+    Simulates identity verification. In a real-world scenario, this would
+    involve checking against a decentralized identity system or using other
+    robust methods to prevent Sybil attacks.
+    """
+    # Placeholder for a more sophisticated identity verification process
+    # This could involve checking against a list of known identities,
+    # using biometric data, or verifying credentials from trusted sources.
+    return random.random() > 0.2  # Simulate a 80% success rate
+
+  def update_contribution_score(self, validator_address, content_hash, content_size, content_quality):
+    """Updates a validator's score with content quality assessment."""
+    if validator_address in self.validators:
+      base_score = content_size / 1024 / 1024
+      quality_multiplier = content_quality  # Use a more sophisticated quality assessment
+      score_increase = base_score * quality_multiplier
+      self.validators[validator_address]["score"] += score_increase
+      self.validators[validator_address]["last_contribution"] = time.time()
+      self.content_ledger[content_hash] = {
+          "validator": validator_address,
+          "size": content_size,
+          "quality": content_quality,  # Store content quality
+          "timestamp": time.time()
+      }
+
+  def select_validator(self):
+    """Selects a validator with score decay over time."""
+    eligible_validators = [v for v in self.validators if self.validators[v]["score"] > 0]
+    if not eligible_validators:
+      return None
+
+    # Score decay (example): Reduce score by 1% per hour since last contribution
+    current_time = time.time()
+    for validator in eligible_validators:
+      time_since_contribution = current_time - self.validators[validator]["last_contribution"]
+      score_decay = 0.01 * (time_since_contribution / 3600)  # 1% per hour
+      self.validators[validator]["score"] *= (1 - score_decay)
+
+    total_score = sum(self.validators[v]["score"] for v in eligible_validators)
+    random_value = random.uniform(0, total_score)
+    current_score = 0
+    for validator in eligible_validators:
+      current_score += self.validators[validator]["score"]
+      if random_value <= current_score:
+        return validator
+
+  def add_block(self, new_block):
+    new_block.previous_hash = self.get_latest_block
+    new_block.validator = self.select_validator()
+    if new_block.validator is None:
+     return False #no validator available
+
+    new_block.hash = new_block.calculate_hash()
+    self.chain.append(new_block)
+    return True
