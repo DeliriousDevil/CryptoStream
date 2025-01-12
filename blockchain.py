@@ -54,7 +54,7 @@ class Blockchain:
 
         mined = self.proof_of_work(new_block)
         if mined:
-            reward_transaction = {"to": miner_address, "amount": 50, "type": "reward"}
+            reward_transaction = {"to": miner_address, "amount": 1, "type": "reward"}
             new_block.transactions.append(reward_transaction)
             self.chain.append(new_block)
             return new_block
